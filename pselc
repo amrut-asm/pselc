@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Set this variable to your PDF reader if you use a PDF reader other than Evince, mupdf or okular 
+READER="xdg-open"
+
+# Set this variable to replace the #? prompt with a custom message
+PS3="Enter your choice (q to quit): "
+
+# Usage funtion to display the usage of the script and exit
+usage ()
+{
+	echo "Usage: pselc [options] [directory]"
+	echo ""
+	echo "Options:"
+	echo "   -s    Scan for PDFs in subdirectories as well"
+	echo "   -h    Display this help text"
+	echo ""
+	exit
+}
+
+# Process flags
+flag=0
+DIR=""
+case $1 in 
+	--help|-h) 
+		usage
+		;;
+	-s) 
+		[ -z $2 ] && usage
+		flag=1 
+		DIR=$2
+		;;
+	-*)
+		echo "Invalid option"
+		echo ""
+		usage
+		;;
+	*)
+		DIR=$1 
+		;;
+esac
+
+# Exit if no PDF reader found
+if [ -z $READER ]
+then
+	echo "No PDF reader found!"
+	echo "Consider setting the READER variable in the script"
+	exit
+fi
+
+# Exit if directory is not found
+find $DIR -maxdepth 0 &>/dev/null
+if [ $? -ne 0 ]
+then
+	echo "No such directory exists!"
+	exit
+fi
+
+# Read filenames into array
+i=0
+if [ $flag -eq 1 ]
+then
+	while read line
+	do
+	   	array[i]=$line
+	    	((i++))
+	done < <(find $DIR -type f \( -name "*.pdf" -o -name "*.chm" -o -name "*.djvu" \) | sort) 2>/dev/null
+else
+	while read line
+	do
+		array[i]=$line
+		((i++))
+	done < <(find $DIR -maxdepth 1 -type f \( -name "*.pdf" -o -name "*.chm" -o -name "*.djvu" \) | sort) 2>/dev/null
+fi
+
+array_size=${#array[@]}
+
+# Exit if no PDFs found
+if [ $array_size -eq 0 ]
+then
+	echo "No PDFs found in input directory"
+	exit
+fi
+
+# Use BASH's inbuilt select utility to prompt for user input
+echo ""
+select choice in "${array[@]}"
+do
+	if [ "$REPLY" == "q" ]
+	then
+		exit
+	fi
+
+	for (( i=0 ; i<$array_size ; i++ ))
+	do
+		if [ "$choice" == "${array[i]}"	]
+		then
+			$READER "$choice" &>/dev/null &
+			clear
+			exit
+		fi
+	done
+	echo ""
+	echo "Invalid choice"
+done
