@@ -73,10 +73,8 @@ else
 	done < <(find $DIR -maxdepth 1 -type f \( -name "*.pdf" -o -name "*.chm" -o -name "*.djvu" \) | sort) 2>/dev/null
 fi
 
-array_size=${#array[@]}
-
 # Exit if no PDFs found
-if [ $array_size -eq 0 ]
+if [ $i -eq 0 ]
 then
 	echo "No PDFs found in input directory"
 	exit
@@ -86,20 +84,19 @@ fi
 echo ""
 select choice in "${array[@]}"
 do
-	if [ "$REPLY" == "q" ]
+	if [[ $REPLY == q ]]
 	then
+		echo "Quitting..."
 		exit
+	elif ! [[ $REPLY =~ ^[0-9]+$ ]]
+	then
+		echo "Invalid choice!"
+	elif [[ $REPLY -lt $i+1 && $REPLY -gt 0 ]]
+	then
+		var=$REPLY
+		((var--))
+		$READER "${array[var]}" &>/dev/null &
+	else
+		echo "Invalid choice!"
 	fi
-
-	for (( i=0 ; i<$array_size ; i++ ))
-	do
-		if [ "$choice" == "${array[i]}"	]
-		then
-			$READER "$choice" &>/dev/null &
-			clear
-			exit
-		fi
-	done
-	echo ""
-	echo "Invalid choice"
 done
